@@ -38,58 +38,41 @@ import (
 	"log"
 	"time"
 
-	"go.bug.st/serial"
+	"github.com/tarm/serial"
 )
 
 func main() {
-	mode := &serial.Mode{
-		BaudRate: 9600,
-		Parity:   serial.NoParity,
-		DataBits: 8,
-		StopBits: serial.OneStopBit,
-	}
 
-	port, err := serial.Open("COM1", mode)
+	var STATUS string
+
+	PORT_CONFIG := &serial.Config{Name: "COM1", Baud: 9600, ReadTimeout: 3 * time.Second}
+
+	MSCOMM1, err := serial.OpenPort(PORT_CONFIG)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	port.SetReadTimeout(3 * time.Second)
+	n, err := MSCOMM1.Write([]byte("STAT" + "\n"))
 
-	/*
-		learn, err := port.Write([]byte("M_LE(5)" + "\n"))
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Printf("Sent %v bytes\n", learn)
-
-		discard, err := port.Write([]byte("GET_" + "\n"))
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		fmt.Printf("Sent %v bytes\n", discard)
-	*/
-	n, err := port.Write([]byte("STAT" + "\n"))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("Sent %v bytes\n", n)
-
-	buff := make([]byte, 128)
+	buf := make([]byte, 128)
 
 	for {
-		n, err := port.Read(buff)
+		n, err = MSCOMM1.Read(buf)
 		if err != nil {
 			log.Fatal(err)
 			break
 		}
 		if n == 0 {
-			fmt.Println("\nEOF")
+			log.Println("\nEOF")
 			break
 		}
-		fmt.Printf("%v", string(buff[:n]))
+		STATUS = STATUS + string(buf[:n])
 	}
-	port.Close()
+
+	fmt.Println(STATUS)
+	MSCOMM1.Close()
 }
